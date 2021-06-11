@@ -4,3 +4,7 @@ out
 .config
 .config.old
 klippy/.version
+.idea/
+_test_*
+*.dict
+*.bak

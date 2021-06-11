@@ -3,9 +3,9 @@
 # Copyright (C) 2016-2021  Kevin O'Connor <kevin@koconnor.net>
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
-import os, logging
+import os
+import logging
 import cffi
-
 
 ######################################################################
 # c_helper.so compiling
@@ -59,19 +59,21 @@ defs_itersolve = """
     void itersolve_set_trapq(struct stepper_kinematics *sk, struct trapq *tq);
     void itersolve_set_stepcompress(struct stepper_kinematics *sk
         , struct stepcompress *sc, double step_dist);
-    double itersolve_calc_position_from_coord(struct stepper_kinematics *sk
-        , double x, double y, double z);
-    void itersolve_set_position(struct stepper_kinematics *sk
-        , double x, double y, double z);
+    double itersolve_calc_position_from_coord(struct stepper_kinematics *sk,
+    double x, double y, double z, double a, double b, double c);
+    void itersolve_set_position(struct stepper_kinematics *sk, double x,
+    double y, double z, double a, double b, double c);
     double itersolve_get_commanded_pos(struct stepper_kinematics *sk);
 """
 
 defs_trapq = """
     void trapq_append(struct trapq *tq, double print_time
-        , double accel_t, double cruise_t, double decel_t
-        , double start_pos_x, double start_pos_y, double start_pos_z
-        , double axes_r_x, double axes_r_y, double axes_r_z
-        , double start_v, double cruise_v, double accel);
+                  , double accel_t, double cruise_t, double decel_t
+                  , double start_pos_x, double start_pos_y, double start_pos_z
+                  , double start_pos_a, double start_pos_b, double start_pos_c
+                  , double axes_r_x, double axes_r_y, double axes_r_z
+                  , double axes_r_a, double axes_r_b, double axes_r_c
+                  , double start_v, double cruise_v, double accel);
     struct trapq *trapq_alloc(void);
     void trapq_free(struct trapq *tq);
     void trapq_free_moves(struct trapq *tq, double print_time);
@@ -183,11 +185,17 @@ defs_all = [
     defs_kin_winch, defs_kin_extruder, defs_kin_shaper,
 ]
 
+
 # Update filenames to an absolute path
+
+
 def get_abs_files(srcdir, filelist):
     return [os.path.join(srcdir, fname) for fname in filelist]
 
+
 # Return the list of file modification times
+
+
 def get_mtimes(filelist):
     out = []
     for filename in filelist:
@@ -198,20 +206,29 @@ def get_mtimes(filelist):
         out.append(t)
     return out
 
+
 # Check if the code needs to be compiled
+
+
 def check_build_code(sources, target):
     src_times = get_mtimes(sources)
     obj_times = get_mtimes([target])
     return not obj_times or max(src_times) > min(obj_times)
 
+
 # Check if the current gcc version supports a particular command-line option
+
+
 def check_gcc_option(option):
     cmd = "%s %s -S -o /dev/null -xc /dev/null > /dev/null 2>&1" % (
         GCC_CMD, option)
     res = os.system(cmd)
     return res == 0
 
+
 # Check if the current gcc version supports a particular command-line option
+
+
 def do_build_code(cmd):
     res = os.system(cmd)
     if res:
@@ -219,15 +236,22 @@ def do_build_code(cmd):
         logging.error(msg)
         raise Exception(msg)
 
+
 FFI_main = None
 FFI_lib = None
 pyhelper_logging_callback = None
 
+
 # Hepler invoked from C errorf() code to log errors
+
+
 def logging_callback(msg):
     logging.error(FFI_main.string(msg))
 
+
 # Return the Foreign Function Interface api to the caller
+
+
 def get_ffi():
     global FFI_main, FFI_lib, pyhelper_logging_callback
     if FFI_lib is None:
@@ -235,7 +259,7 @@ def get_ffi():
         srcfiles = get_abs_files(srcdir, SOURCE_FILES)
         ofiles = get_abs_files(srcdir, OTHER_FILES)
         destlib = get_abs_files(srcdir, [DEST_LIB])[0]
-        if check_build_code(srcfiles+ofiles+[__file__], destlib):
+        if check_build_code(srcfiles + ofiles + [__file__], destlib):
             if check_gcc_option(SSE_FLAGS):
                 cmd = "%s %s %s" % (GCC_CMD, SSE_FLAGS, COMPILE_ARGS)
             else:
@@ -262,6 +286,7 @@ HC_SOURCE_FILES = ['hub-ctrl.c']
 HC_SOURCE_DIR = '../../lib/hub-ctrl'
 HC_TARGET = "hub-ctrl"
 HC_CMD = "sudo %s/hub-ctrl -h 0 -P 2 -p %d"
+
 
 def run_hub_ctrl(enable_power):
     srcdir = os.path.dirname(os.path.realpath(__file__))
