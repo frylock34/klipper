@@ -1,10 +1,37 @@
+# Configuration Changes
+
 This document covers recent software changes to the config file that
 are not backwards compatible. It is a good idea to review this
 document when upgrading the Klipper software.
 
 All dates in this document are approximate.
 
-# Changes
+## Changes
+
+20210821: Several config settings in `printer.configfile.settings`
+will now be reported as lists instead of raw strings.  If the actual
+raw string is desired, use `printer.configfile.config` instead.
+
+20210819: In some cases, a `G28` homing move may end in a position
+that is nominally outside the valid movement range.  In rare
+situations this may result in confusing "Move out of range" errors
+after homing.  If this occurs, change your start scripts to move the
+toolhead to a valid position immediately after homing.
+
+20210814: The analog only pseudo-pins on the atmega168 and atmega328
+have been renamed from PE0/PE1 to PE2/PE3.
+
+20210720: A controller_fan section now monitors all stepper motors by
+default (not just the kinematic stepper motors).  If the previous
+behavior is desired, see the `stepper` config option in the
+[config reference](Config_Reference.md#controller_fan).
+
+20210703: A `samd_sercom` config section must now specify the sercom
+bus it is configuring via the `sercom` option.
+
+20210612: The `pid_integral_max` config option in heater and
+temperature_fan sections is deprecated.  The option will be removed in
+the near future.
 
 20210503: The gcode_macro `default_parameter_<name>` config option is
 deprecated.  Use the `params` pseudo-variable to access macro
